@@ -1,6 +1,6 @@
-package scala.scalajs.tools.jsdep
+package org.scalajs.core.tools.jsdep
 
-import scala.scalajs.ir.Trees.isValidIdentifier
+import org.scalajs.core.ir.Trees.isValidIdentifier
 
 /** The same as a [[JSDependency]] but containing the origin from the containing
  *  JSDependencyManifest. This class is used for filtering of dependencies.

@@ -1,6 +1,6 @@
-package scala.scalajs.tools.jsdep
+package org.scalajs.core.tools.jsdep
 
-import scala.scalajs.tools.json._
+import org.scalajs.core.tools.json._
 
 /** The place a JSDependency originated from */
 final class Origin(val moduleName: String, val configuration: String) {

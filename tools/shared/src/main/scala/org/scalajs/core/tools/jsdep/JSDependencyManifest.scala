@@ -1,7 +1,7 @@
-package scala.scalajs.tools.jsdep
+package org.scalajs.core.tools.jsdep
 
-import scala.scalajs.tools.json._
-import scala.scalajs.tools.io._
+import org.scalajs.core.tools.json._
+import org.scalajs.core.tools.io._
 
 import scala.collection.immutable.{Seq, Traversable}
 

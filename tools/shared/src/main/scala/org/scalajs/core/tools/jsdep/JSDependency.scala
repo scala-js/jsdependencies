@@ -1,8 +1,8 @@
-package scala.scalajs.tools.jsdep
+package org.scalajs.core.tools.jsdep
 
-import scala.scalajs.tools.json._
+import org.scalajs.core.tools.json._
 
-import scala.scalajs.ir.Trees.isValidIdentifier
+import org.scalajs.core.ir.Trees.isValidIdentifier
 
 /** Expresses a dependency on a raw JS library and the JS libraries this library
  *  itself depends on.

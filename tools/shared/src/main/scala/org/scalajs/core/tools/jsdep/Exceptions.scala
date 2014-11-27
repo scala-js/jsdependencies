@@ -1,4 +1,4 @@
-package scala.scalajs.tools.jsdep
+package org.scalajs.core.tools.jsdep
 
 abstract class DependencyException(msg: String) extends Exception(msg)
 
