@@ -1,0 +1,43 @@
+sudo: false
+language: scala
+scala:
+  - 2.10.6
+  - 2.11.11
+  - 2.12.2
+jdk:
+  - oraclejdk8
+install:
+  - if [[ "${TRAVIS_SCALA_VERSION}" == "2.10.6" ]]; then TEST_SBT_PLUGIN=true; else TEST_SBT_PLUGIN=false; fi
+  # The default ivy resolution takes way too much time, and times out Travis builds.
+  # We use coursier instead.
+  - mkdir -p $HOME/.sbt/0.13/plugins/
+  - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC3")' > $HOME/.sbt/0.13/plugins/coursier.sbt
+  # While there is no published version of Scala.js 1.x, we have to locally build a snapshot.
+  - git clone https://github.com/scala-js/scala-js.git
+  - cd scala-js
+  - git checkout cc6610bf35332b5a52276b8fda69dee5ea72300f
+  - sbt ++$TRAVIS_SCALA_VERSION ir/publishLocal tools/publishLocal
+  - |
+      if [[ "${TEST_SBT_PLUGIN}" == "true" ]]; then
+        sbt ++$TRAVIS_SCALA_VERSION jsEnvs/publishLocal testAdapter/publishLocal sbtPlugin/publishLocal &&
+        sbt ++2.11.11 compiler/publishLocal library/publishLocal testInterface/publishLocal
+      fi
+  - cd ..
+script:
+  - sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/test jsdependencies-core/doc
+  - |
+      if [[ "${TEST_SBT_PLUGIN}" == "true" ]]; then
+        sbt jsdependencies-core/publishLocal sbt-jsdependencies/publishLocal && \
+        cd sbt-plugin-test && \
+        sbt testAll && \
+        cd ..
+      fi
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+    - $HOME/.coursier/cache
+before_cache:
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt -name "*.lock" -print -delete
+  - rm $HOME/.sbt/0.13/plugins/coursier.sbt
