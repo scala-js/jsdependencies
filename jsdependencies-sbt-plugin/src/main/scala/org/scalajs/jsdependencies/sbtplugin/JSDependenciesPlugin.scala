@@ -11,7 +11,6 @@ import sbt.Keys._
 import org.scalajs.core.ir.Utils.escapeJS
 
 import org.scalajs.core.tools.io.{IO => toolsIO, _}
-import org.scalajs.core.tools.json._
 
 import org.scalajs.jsenv.VirtualFileMaterializer
 
@@ -144,8 +143,7 @@ object JSDependenciesPlugin extends AutoPlugin {
       container: VirtualFileContainer): List[JSDependencyManifest] = {
     container.listEntries(_ == JSDependencyManifest.ManifestFileName) {
       (_, stream) =>
-        val json = readJSON(new InputStreamReader(stream, "UTF-8"))
-        fromJSON[JSDependencyManifest](json)
+        JSDependencyManifest.read(new InputStreamReader(stream, "UTF-8"))
     }
   }
 
@@ -264,7 +262,7 @@ object JSDependenciesPlugin extends AutoPlugin {
             new ExactFilter(JSDependencyManifest.ManifestFileName),
             collectJar = jsDependencyManifestsInJar(_),
             collectFile = { (file, _) =>
-              fromJSON[JSDependencyManifest](readJSON(IO.read(file)))
+              JSDependencyManifest.read(FileVirtualTextFile(file))
             })
 
         rawManifests.map(manifests => filter(manifests.toTraversable))
