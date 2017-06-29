@@ -1,8 +1,8 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.core.tools.json._
-
 import org.scalajs.core.ir.Trees.isValidIdentifier
+
+import org.scalajs.jsdependencies.core.json._
 
 /** Expresses a dependency on a raw JS library and the JS libraries this library
  *  itself depends on.

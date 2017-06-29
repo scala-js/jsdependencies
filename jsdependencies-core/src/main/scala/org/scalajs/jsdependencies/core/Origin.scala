@@ -1,6 +1,6 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.core.tools.json._
+import org.scalajs.jsdependencies.core.json._
 
 /** The place a JSDependency originated from */
 final class Origin(val moduleName: String, val configuration: String) {
