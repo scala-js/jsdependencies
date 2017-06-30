@@ -12,17 +12,6 @@ install:
   # We use coursier instead.
   - mkdir -p $HOME/.sbt/0.13/plugins/
   - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC3")' > $HOME/.sbt/0.13/plugins/coursier.sbt
-  # While there is no published version of Scala.js 1.x, we have to locally build a snapshot.
-  - git clone https://github.com/scala-js/scala-js.git
-  - cd scala-js
-  - git checkout cc6610bf35332b5a52276b8fda69dee5ea72300f
-  - sbt ++$TRAVIS_SCALA_VERSION ir/publishLocal tools/publishLocal
-  - |
-      if [[ "${TEST_SBT_PLUGIN}" == "true" ]]; then
-        sbt ++$TRAVIS_SCALA_VERSION jsEnvs/publishLocal testAdapter/publishLocal sbtPlugin/publishLocal &&
-        sbt ++2.11.11 compiler/publishLocal library/publishLocal testInterface/publishLocal
-      fi
-  - cd ..
 script:
   - sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/test jsdependencies-core/doc
   - |

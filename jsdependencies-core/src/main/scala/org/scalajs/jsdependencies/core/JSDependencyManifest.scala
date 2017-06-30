@@ -1,11 +1,12 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.core.tools.json._
-import org.scalajs.core.tools.io._
-
 import scala.collection.immutable.{Seq, Traversable}
 
 import java.io.{Reader, Writer}
+
+import org.scalajs.core.tools.io._
+
+import org.scalajs.jsdependencies.core.json._
 
 /** The information written to a "JS_DEPENDENCIES" manifest file. */
 final class JSDependencyManifest(

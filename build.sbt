@@ -1,4 +1,4 @@
-val scalaJSVersion = "1.0.0-SNAPSHOT"
+val scalaJSVersion = "1.0.0-M1"
 
 inThisBuild(Seq(
   version := "0.1.0-SNAPSHOT",
@@ -74,6 +74,7 @@ lazy val `jsdependencies-core`: Project = project.in(file("jsdependencies-core")
 
     libraryDependencies ++= Seq(
       "org.scala-js" %% "scalajs-tools" % scalaJSVersion,
+      "com.googlecode.json-simple" % "json-simple" % "1.1.1" exclude("junit", "junit"),
 
       "com.novocode" % "junit-interface" % "0.11" % "test"
     )
