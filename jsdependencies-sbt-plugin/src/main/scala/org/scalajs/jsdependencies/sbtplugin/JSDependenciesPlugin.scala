@@ -196,7 +196,17 @@ object JSDependenciesPlugin extends AutoPlugin {
     }.value
   }
 
-  lazy val configSettings: Seq[Setting[_]] = Seq(
+  lazy val configSettings: Seq[Setting[_]] = (
+      Seq(packageJSDependencies, packageMinifiedJSDependencies).map { key =>
+        moduleName in key := {
+          val configSuffix = configuration.value match {
+            case Compile => ""
+            case config  => "-" + config.name
+          }
+          moduleName.value + configSuffix
+        }
+      }
+  ) ++ Seq(
       fastOptJS := fastOptJS.dependsOn(packageJSDependencies).value,
       fullOptJS := fullOptJS.dependsOn(packageJSDependencies).value,
       fullOptJS := fullOptJS.dependsOn(packageMinifiedJSDependencies).value,
@@ -338,13 +348,9 @@ object JSDependenciesPlugin extends AutoPlugin {
       }
   )
 
-  lazy val compileSettings = configSettings
+  lazy val compileSettings: Seq[Setting[_]] = configSettings
 
-  lazy val testSettings = Def.settings(
-      configSettings,
-
-      moduleName in packageJSDependencies := moduleName.value + "-test"
-  )
+  lazy val testSettings: Seq[Setting[_]] = configSettings
 
   override def projectSettings: Seq[Setting[_]] = Def.settings(
       inConfig(Compile)(compileSettings),
