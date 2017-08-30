@@ -70,7 +70,7 @@ lazy val jsDependenciesTest = withRegretionTestForIssue2243(
     }
   ).
   settings(inConfig(Compile)(Seq(
-    packageJSDependencies <<= packageJSDependencies.dependsOn(Def.task {
+    packageJSDependencies := packageJSDependencies.dependsOn(Def.task {
       // perform verifications on the ordering and deduplications
       val resolvedDeps = resolvedJSDependencies.value.data
       val relPaths = resolvedDeps.map(_.info.relPath)
@@ -106,7 +106,7 @@ lazy val jsDependenciesTest = withRegretionTestForIssue2243(
           "compressed/history.js appears before foo.js")
 
       streams.value.log.info("jsDependencies resolution test passed")
-    })
+    }).value
   )): _*).
   dependsOn(jsDependenciesTestDependee) // depends on jQuery
 )
