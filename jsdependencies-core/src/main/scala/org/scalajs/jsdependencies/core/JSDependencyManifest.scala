@@ -11,16 +11,14 @@ import org.scalajs.jsdependencies.core.json._
 /** The information written to a "JS_DEPENDENCIES" manifest file. */
 final class JSDependencyManifest(
     val origin: Origin,
-    val libDeps: List[JSDependency],
-    val requiresDOM: Boolean) {
+    val libDeps: List[JSDependency]) {
 
   import JSDependencyManifest._
 
   override def equals(that: Any): Boolean = that match {
     case that: JSDependencyManifest =>
       this.origin == that.origin &&
-      this.libDeps == that.libDeps &&
-      this.requiresDOM == that.requiresDOM
+      this.libDeps == that.libDeps
     case _ =>
       false
   }
@@ -29,9 +27,8 @@ final class JSDependencyManifest(
     import scala.util.hashing.MurmurHash3._
     var acc = HashSeed
     acc = mix(acc, origin.##)
-    acc = mix(acc, libDeps.##)
-    acc = mixLast(acc, requiresDOM.##)
-    finalizeHash(acc, 3)
+    acc = mixLast(acc, libDeps.##)
+    finalizeHash(acc, 2)
   }
 
   override def toString(): String = {
@@ -39,8 +36,6 @@ final class JSDependencyManifest(
     b ++= s"JSDependencyManifest(origin=$origin"
     if (libDeps.nonEmpty)
       b ++= s", libDeps=$libDeps"
-    if (requiresDOM)
-      b ++= s", requiresDOM=$requiresDOM"
     b ++= ")"
     b.result()
   }
@@ -61,7 +56,6 @@ object JSDependencyManifest {
       new JSONObjBuilder()
         .fld("origin", x.origin)
         .opt("libDeps", optList(x.libDeps))
-        .opt("requiresDOM", if (x.requiresDOM) Some(true) else None)
         .toJSON
     }
   }
@@ -71,8 +65,7 @@ object JSDependencyManifest {
       val obj = new JSONObjExtractor(x)
       new JSDependencyManifest(
           obj.fld[Origin]("origin"),
-          obj.opt[List[JSDependency]]("libDeps").getOrElse(Nil),
-          obj.opt[Boolean]("requiresDOM").getOrElse(false))
+          obj.opt[List[JSDependency]]("libDeps").getOrElse(Nil))
     }
   }
 

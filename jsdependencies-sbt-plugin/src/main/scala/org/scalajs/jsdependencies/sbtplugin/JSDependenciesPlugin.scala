@@ -44,9 +44,6 @@ object JSDependenciesPlugin extends AutoPlugin {
     val jsDependencyManifests = TaskKey[Attributed[Traversable[JSDependencyManifest]]](
         "jsDependencyManifests", "All the JS_DEPENDENCIES on the classpath", DTask)
 
-    val requiresDOM = SettingKey[Boolean]("requiresDOM",
-        "Whether this projects needs the DOM. Overrides anything inherited through dependencies.", AMinusSetting)
-
     val jsDependencies = SettingKey[Seq[AbstractJSDep]]("jsDependencies",
         "JavaScript libraries this project depends upon. Also used to depend on the DOM.", APlusSetting)
 
@@ -58,20 +55,6 @@ object JSDependenciesPlugin extends AutoPlugin {
 
     val resolvedJSDependencies = TaskKey[Attributed[Seq[ResolvedJSDependency]]]("resolvedJSDependencies",
         "JS dependencies after resolution.", DTask)
-
-    /** Internal task to calculate whether a project requests the DOM
-     *  (through jsDependencies or requiresDOM) */
-    val scalaJSRequestsDOM = TaskKey[Boolean]("scalaJSRequestsDOM",
-        "Scala.js internal: Whether a project really wants the DOM. " +
-        "Calculated using requiresDOM and jsDependencies", KeyRanks.Invisible)
-
-    /** Dummy builder to allow declaractions like:
-     *
-     *  {{{
-     *  RuntimeDOM % "test"
-     *  }}}
-     */
-    val RuntimeDOM = RuntimeDOMDep(None)
 
     /** Builder to allow declarations like:
      *
@@ -224,14 +207,8 @@ object JSDependenciesPlugin extends AutoPlugin {
             dep.jsDep
         }
 
-        val requiresDOM = jsDependencies.value.exists {
-          case RuntimeDOMDep(configurations) =>
-            configurations.forall(_ == config)
-          case _ => false
-        }
-
         val manifest = new JSDependencyManifest(new Origin(myModule, config),
-            jsDeps.toList, requiresDOM)
+            jsDeps.toList)
 
         // Write dependency file to class directory
         val targetDir = classDirectory.value
@@ -330,11 +307,6 @@ object JSDependenciesPlugin extends AutoPlugin {
         }
 
         libs ++ jsExecutionFiles.value
-      },
-
-      scalaJSRequestsDOM := {
-        requiresDOM.?.value.getOrElse(
-            jsDependencyManifests.value.data.exists(_.requiresDOM))
       }
   )
 
