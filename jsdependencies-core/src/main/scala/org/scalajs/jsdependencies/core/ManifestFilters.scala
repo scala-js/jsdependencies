@@ -41,8 +41,7 @@ object ManifestFilters {
             jsDependency.dependencies.map(mapping),
             jsDependency.commonJSName,
             jsDependency.minifiedResourceName.map(mapping))
-      new JSDependencyManifest(manifest.origin, filteredJSDeps,
-          manifest.requiresDOM)
+      new JSDependencyManifest(manifest.origin, filteredJSDeps)
     }
   }
 }

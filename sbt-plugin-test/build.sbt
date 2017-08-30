@@ -34,7 +34,6 @@ lazy val jsDependenciesTestDependee = project.
   settings(
     // This project contains some jsDependencies to test in jsDependenciesTest
     jsDependencies ++= Seq(
-        RuntimeDOM,
         // The jsDependenciesTest relies on this jQuery dependency
         // If you change it, make sure we still test properly
         "org.webjars" % "jquery" % "1.10.2" / "jquery.js"

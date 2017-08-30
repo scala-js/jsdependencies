@@ -73,10 +73,3 @@ object ProvidedJSModuleID {
   def apply(name: String, configurations: Option[String]): ProvidedJSModuleID =
     ProvidedJSModuleID(new JSDependency(name, Nil), configurations)
 }
-
-final case class RuntimeDOMDep(
-    configurations: Option[String]) extends AbstractJSDep {
-
-  protected def withConfigs(configs: Option[String]): RuntimeDOMDep =
-    copy(configurations = configs)
-}
