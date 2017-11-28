@@ -16,7 +16,6 @@ import org.scalajs.jsenv.VirtualFileMaterializer
 
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
-import org.scalajs.sbtplugin.ScalaJSPluginInternal.scalaJSSourceFiles
 
 import org.scalajs.jsdependencies.core._
 import org.scalajs.jsdependencies.core.DependencyResolver.DependencyFilter

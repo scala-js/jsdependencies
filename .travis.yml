@@ -11,7 +11,7 @@ install:
   # The default ivy resolution takes way too much time, and times out Travis builds.
   # We use coursier instead.
   - mkdir -p $HOME/.sbt/0.13/plugins/
-  - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC3")' > $HOME/.sbt/0.13/plugins/coursier.sbt
+  - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC13")' > $HOME/.sbt/0.13/plugins/coursier.sbt
 script:
   - sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/test jsdependencies-core/doc
   - |

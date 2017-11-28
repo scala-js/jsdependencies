@@ -1,10 +1,10 @@
-val scalaJSVersion = "1.0.0-M1"
+val scalaJSVersion = "1.0.0-M2"
 
 inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
   organization := "org.scala-js",
 
-  crossScalaVersions := Seq("2.10.6", "2.11.11", "2.12.2"),
+  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.4"),
   scalaVersion := "2.10.6",
   scalacOptions ++= Seq("-deprecation", "-feature", "-Xfatal-warnings"),
 
