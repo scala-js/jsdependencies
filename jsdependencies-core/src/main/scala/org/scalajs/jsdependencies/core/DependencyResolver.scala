@@ -2,7 +2,8 @@ package org.scalajs.jsdependencies.core
 
 import scala.collection.mutable
 
-import org.scalajs.core.tools.io.VirtualJSFile
+import org.scalajs.io.VirtualJSFile
+
 import JSLibResolveException.Problem
 
 object DependencyResolver {

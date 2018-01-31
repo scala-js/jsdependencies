@@ -1,4 +1,4 @@
-val scalaJSVersion = "1.0.0-M2"
+val scalaJSVersion = "1.0.0-M3"
 
 def addSbtPluginWorkaround(moduleID: ModuleID): Setting[_] = {
   /* Work around https://github.com/sbt/sbt/issues/3393.
@@ -86,7 +86,8 @@ lazy val `jsdependencies-core`: Project = project.in(file("jsdependencies-core")
     commonSettings,
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-tools" % scalaJSVersion,
+      "org.scala-js" %% "scalajs-ir" % scalaJSVersion,
+      "org.scala-js" %% "scalajs-io" % scalaJSVersion,
       "com.googlecode.json-simple" % "json-simple" % "1.1.1" exclude("junit", "junit"),
 
       "com.novocode" % "junit-interface" % "0.11" % "test"

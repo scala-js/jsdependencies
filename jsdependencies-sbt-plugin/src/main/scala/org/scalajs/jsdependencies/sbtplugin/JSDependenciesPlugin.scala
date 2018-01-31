@@ -8,9 +8,8 @@ import java.io.InputStreamReader
 import sbt._
 import sbt.Keys._
 
-import org.scalajs.core.ir.Utils.escapeJS
-
-import org.scalajs.core.tools.io.{IO => toolsIO, _}
+import org.scalajs.io.{IO => toolsIO, _}
+import org.scalajs.io.JSUtils.escapeJS
 
 import org.scalajs.jsenv.VirtualFileMaterializer
 
@@ -120,6 +119,20 @@ object JSDependenciesPlugin extends AutoPlugin {
     Attributed.blank(results.result()).put(
         scalaJSSourceFiles, realFiles.result())
   }
+
+  private def jsFilesInJar(
+      jar: VirtualFileContainer): List[VirtualJSFile with RelativeVirtualFile] = {
+    jar.listEntries(_.endsWith(".js")) { (relPath, stream) =>
+      val file = new EntryJSFile(jar.path, relPath)
+      file.content = org.scalajs.io.IO.readInputStreamToString(stream)
+      file.version = jar.version
+      file
+    }
+  }
+
+  private class EntryJSFile(outerPath: String, val relativePath: String)
+      extends MemVirtualJSFile(s"$outerPath:$relativePath")
+      with RelativeVirtualFile
 
   private def jsDependencyManifestsInJar(
       container: VirtualFileContainer): List[JSDependencyManifest] = {
@@ -256,7 +269,7 @@ object JSDependenciesPlugin extends AutoPlugin {
 
       scalaJSNativeLibraries := {
         collectFromClasspath(fullClasspath.value,
-            "*.js", collectJar = _.jsFiles,
+            "*.js", collectJar = jsFilesInJar,
             collectFile = FileVirtualJSFile.relative)
       },
 
