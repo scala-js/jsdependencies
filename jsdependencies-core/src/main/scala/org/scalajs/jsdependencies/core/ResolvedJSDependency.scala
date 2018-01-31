@@ -1,6 +1,6 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.core.tools.io._
+import org.scalajs.io._
 
 /** A dependency on a native JavaScript library that has been successfully
  *  resolved

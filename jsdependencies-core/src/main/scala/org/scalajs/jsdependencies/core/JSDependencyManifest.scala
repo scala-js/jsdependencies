@@ -4,7 +4,7 @@ import scala.collection.immutable.{Seq, Traversable}
 
 import java.io.{Reader, Writer}
 
-import org.scalajs.core.tools.io._
+import org.scalajs.io._
 
 import org.scalajs.jsdependencies.core.json._
 
