@@ -2,7 +2,8 @@ package org.scalajs.jsdependencies.core
 
 import scala.collection.immutable.{Seq, Traversable}
 
-import java.io.{Reader, Writer}
+import java.io._
+import java.nio.charset.StandardCharsets
 
 import org.scalajs.io._
 
@@ -69,19 +70,26 @@ object JSDependencyManifest {
     }
   }
 
-  def write(dep: JSDependencyManifest, output: WritableVirtualTextFile): Unit = {
-    val writer = output.contentWriter
-    try write(dep, writer)
-    finally writer.close()
+  def write(dep: JSDependencyManifest, output: WritableVirtualBinaryFile): Unit = {
+    val writer =
+      new OutputStreamWriter(output.outputStream, StandardCharsets.UTF_8)
+    try {
+      write(dep, writer)
+    } finally {
+      writer.close()
+    }
   }
 
   def write(dep: JSDependencyManifest, writer: Writer): Unit =
     writeJSON(dep.toJSON, writer)
 
-  def read(file: VirtualTextFile): JSDependencyManifest = {
-    val reader = file.reader
-    try read(reader)
-    finally reader.close()
+  def read(file: VirtualBinaryFile): JSDependencyManifest = {
+    val reader = new InputStreamReader(file.inputStream, StandardCharsets.UTF_8)
+    try {
+      read(reader)
+    } finally {
+      reader.close()
+    }
   }
 
   def read(reader: Reader): JSDependencyManifest =

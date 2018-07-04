@@ -1,4 +1,4 @@
-val scalaJSVersion = "1.0.0-M3"
+val scalaJSVersion = "1.0.0-M5"
 
 def addSbtPluginWorkaround(moduleID: ModuleID): Setting[_] = {
   /* Work around https://github.com/sbt/sbt/issues/3393.
@@ -16,8 +16,8 @@ inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
   organization := "org.scala-js",
 
-  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.4"),
-  crossSbtVersions := Seq("1.0.4", "0.13.16"),
+  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.6"),
+  crossSbtVersions := Seq("1.0.4", "0.13.17"),
   scalaVersion := "2.10.7",
   scalacOptions ++= Seq("-deprecation", "-feature", "-Xfatal-warnings"),
 

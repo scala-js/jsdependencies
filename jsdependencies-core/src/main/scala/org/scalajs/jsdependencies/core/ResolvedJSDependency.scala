@@ -6,8 +6,8 @@ import org.scalajs.io._
  *  resolved
  */
 final class ResolvedJSDependency(
-    val lib: VirtualJSFile,
-    val minifiedLib: Option[VirtualJSFile],
+    val lib: VirtualBinaryFile,
+    val minifiedLib: Option[VirtualBinaryFile],
     val info: ResolutionInfo)
 
 object ResolvedJSDependency {
@@ -16,8 +16,12 @@ object ResolvedJSDependency {
    *  - The library itself
    *  - Its relative name (lib.name)
    */
-  def minimal(lib: VirtualJSFile): ResolvedJSDependency = {
-    val info = new ResolutionInfo(lib.name, Set.empty, Nil, None, None)
+  def minimal(lib: VirtualBinaryFile): ResolvedJSDependency = {
+    val path = lib.path
+    val separatorIndex = Math.max(path.lastIndexOf('/'),
+        path.lastIndexOf(java.io.File.separatorChar))
+    val name = path.substring(separatorIndex + 1)
+    val info = new ResolutionInfo(name, Set.empty, Nil, None, None)
     new ResolvedJSDependency(lib, None, info)
   }
 }
