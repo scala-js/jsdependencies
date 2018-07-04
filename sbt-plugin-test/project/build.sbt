@@ -1,1 +1,1 @@
-addSbtPlugin("org.scala-js" % "sbt-jsdependencies" % "1.0.0-M5")
+addSbtPlugin("org.scala-js" % "sbt-jsdependencies" % "1.0.0-SNAPSHOT")
