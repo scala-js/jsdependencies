@@ -31,8 +31,8 @@ private[json] object Impl {
   def serialize(x: Repr, writer: Writer): Unit =
     JSONValue.writeJSONString(x, writer)
 
-  def deserialize(str: String): Repr = JSONValue.parse(str)
+  def deserialize(str: String): Repr = JSONValue.parseWithException(str)
 
-  def deserialize(reader: Reader): Repr = JSONValue.parse(reader)
+  def deserialize(reader: Reader): Repr = JSONValue.parseWithException(reader)
 
 }

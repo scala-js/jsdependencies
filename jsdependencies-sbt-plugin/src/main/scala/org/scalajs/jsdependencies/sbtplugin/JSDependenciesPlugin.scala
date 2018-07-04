@@ -1,17 +1,18 @@
 package org.scalajs.jsdependencies.sbtplugin
 
+import scala.annotation.tailrec
+
 import scala.collection.mutable
 import scala.util.Try
 
-import java.io.InputStreamReader
+import java.io.{FileFilter => _, _}
+import java.nio.file.{Files, StandardCopyOption}
 
 import sbt._
 import sbt.Keys._
 
-import org.scalajs.io.{IO => toolsIO, _}
+import org.scalajs.io._
 import org.scalajs.io.JSUtils.escapeJS
-
-import org.scalajs.jsenv.VirtualFileMaterializer
 
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
@@ -26,7 +27,7 @@ object JSDependenciesPlugin extends AutoPlugin {
   object autoImport {
     import KeyRanks._
 
-    val scalaJSNativeLibraries = TaskKey[Attributed[Seq[VirtualJSFile with RelativeVirtualFile]]](
+    val scalaJSNativeLibraries = TaskKey[Attributed[Seq[(String, VirtualBinaryFile)]]](
         "scalaJSNativeLibraries", "All the *.js files on the classpath", CTask)
 
     val packageJSDependencies = TaskKey[File]("packageJSDependencies",
@@ -91,7 +92,7 @@ object JSDependenciesPlugin extends AutoPlugin {
    *      from (key: scalaJSSourceFiles).
    */
   private def collectFromClasspath[T](cp: Def.Classpath, filter: FileFilter,
-      collectJar: VirtualJarFile => Seq[T],
+      collectJar: File => Seq[T],
       collectFile: (File, String) => T): Attributed[Seq[T]] = {
 
     val realFiles = Seq.newBuilder[File]
@@ -100,8 +101,7 @@ object JSDependenciesPlugin extends AutoPlugin {
     for (cpEntry <- Attributed.data(cp) if cpEntry.exists) {
       if (cpEntry.isFile && cpEntry.getName.endsWith(".jar")) {
         realFiles += cpEntry
-        val vf = new FileVirtualBinaryFile(cpEntry) with VirtualJarFile
-        results ++= collectJar(vf)
+        results ++= collectJar(cpEntry)
       } else if (cpEntry.isDirectory) {
         for {
           (file, relPath0) <- Path.selectSubpaths(cpEntry, filter)
@@ -120,39 +120,90 @@ object JSDependenciesPlugin extends AutoPlugin {
         scalaJSSourceFiles, realFiles.result())
   }
 
-  private def jsFilesInJar(
-      jar: VirtualFileContainer): List[VirtualJSFile with RelativeVirtualFile] = {
-    jar.listEntries(_.endsWith(".js")) { (relPath, stream) =>
-      val file = new EntryJSFile(jar.path, relPath)
-      file.content = org.scalajs.io.IO.readInputStreamToString(stream)
-      file.version = jar.version
-      file
+  // Almost entirely copied from FileVirtualIRFiles.scala upstream
+  private def jarListEntries[T](jar: File,
+      p: String => Boolean): List[(String, VirtualBinaryFile)] = {
+
+    import java.util.zip._
+
+    val jarPath = jar.getPath
+    val jarVersion = new FileVirtualBinaryFile(jar).version
+
+    val stream =
+      new ZipInputStream(new BufferedInputStream(new FileInputStream(jar)))
+    try {
+      val buf = new Array[Byte](4096)
+
+      @tailrec
+      def readAll(out: OutputStream): Unit = {
+        val read = stream.read(buf)
+        if (read != -1) {
+          out.write(buf, 0, read)
+          readAll(out)
+        }
+      }
+
+      def makeVF(e: ZipEntry): (String, VirtualBinaryFile) = {
+        val size = e.getSize
+        val out =
+          if (0 <= size && size <= Int.MaxValue) new ByteArrayOutputStream(size.toInt)
+          else new ByteArrayOutputStream()
+
+        try {
+          readAll(out)
+          val relName = e.getName
+          val vf = MemVirtualBinaryFile(s"$jarPath:$relName", out.toByteArray(),
+              jarVersion)
+          relName -> vf
+        } finally {
+          out.close()
+        }
+      }
+
+      Iterator.continually(stream.getNextEntry())
+        .takeWhile(_ != null)
+        .filter(e => p(e.getName))
+        .map(makeVF)
+        .toList
+    } finally {
+      stream.close()
     }
   }
 
-  private class EntryJSFile(outerPath: String, val relativePath: String)
-      extends MemVirtualJSFile(s"$outerPath:$relativePath")
-      with RelativeVirtualFile
+  private def jsFilesInJar(jar: File): List[(String, VirtualBinaryFile)] =
+    jarListEntries(jar, _.endsWith(".js"))
 
-  private def jsDependencyManifestsInJar(
-      container: VirtualFileContainer): List[JSDependencyManifest] = {
-    container.listEntries(_ == JSDependencyManifest.ManifestFileName) {
-      (_, stream) =>
-        JSDependencyManifest.read(new InputStreamReader(stream, "UTF-8"))
-    }
+  private def jsDependencyManifestsInJar(jar: File): List[JSDependencyManifest] = {
+    for (vf <- jarListEntries(jar, _ == JSDependencyManifest.ManifestFileName))
+      yield JSDependencyManifest.read(vf._2)
   }
 
-  /** Concatenates a bunch of VirtualTextFiles to a WritableVirtualTextFile.
+  /** Concatenates a bunch of VirtualBinaryFile to a WritableVirtualBinaryFile.
    *  Adds a '\n' after each file.
    */
-  private def concatFiles(output: WritableVirtualTextFile,
-      files: Seq[VirtualTextFile]): Unit = {
-    val out = output.contentWriter
+  private def concatFiles(output: WritableVirtualBinaryFile,
+      files: Seq[VirtualBinaryFile]): Unit = {
 
+    val out = output.outputStream
     try {
       for (file <- files) {
-        toolsIO.writeTo(file, out)
-        // New line after each file
+        val in = file.inputStream
+        try {
+          val buffer = new Array[Byte](4096)
+          @tailrec
+          def loop(): Unit = {
+            val size = in.read(buffer)
+            if (size > 0) {
+              out.write(buffer, 0, size)
+              loop()
+            }
+          }
+          loop()
+        } finally {
+          in.close()
+        }
+
+        // ASCII new line after each file
         out.write('\n')
       }
     } finally {
@@ -160,9 +211,37 @@ object JSDependenciesPlugin extends AutoPlugin {
     }
   }
 
+  // tmpSuffixRE and tmpFile copied from HTMLRunnerBuilder.scala in Scala.js
+
+  private val tmpSuffixRE = """[a-zA-Z0-9-_.]*$""".r
+
+  private def tmpFile(path: String, in: InputStream): URI = {
+    try {
+      /* - createTempFile requires a prefix of at least 3 chars
+       * - we use a safe part of the path as suffix so the extension stays (some
+       *   browsers need that) and there is a clue which file it came from.
+       */
+      val suffix = tmpSuffixRE.findFirstIn(path).orNull
+
+      val f = File.createTempFile("tmp-", suffix)
+      f.deleteOnExit()
+      Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      f.toURI()
+    } finally {
+      in.close()
+    }
+  }
+
+  private def materialize(file: VirtualBinaryFile): URI = {
+    file match {
+      case file: FileVirtualFile => file.file.toURI
+      case file                  => tmpFile(file.path, file.inputStream)
+    }
+  }
+
   private def packageJSDependenciesSetting(taskKey: TaskKey[File],
       cacheName: String,
-      getLib: ResolvedJSDependency => VirtualJSFile): Setting[Task[File]] = {
+      getLib: ResolvedJSDependency => VirtualBinaryFile): Setting[Task[File]] = {
     taskKey := Def.taskDyn {
       if ((skip in taskKey).value)
         Def.task((artifactPath in taskKey).value)
@@ -180,7 +259,7 @@ object JSDependenciesPlugin extends AutoPlugin {
 
           IO.createDirectory(output.getParentFile)
 
-          val outFile = AtomicWritableFileVirtualJSFile(output)
+          val outFile = new AtomicWritableFileVirtualBinaryFile(output)
           concatFiles(outFile, resolvedDeps.map(getLib))
 
           Set(output)
@@ -237,10 +316,10 @@ object JSDependenciesPlugin extends AutoPlugin {
         IO.createDirectory(targetDir)
 
         val file = targetDir / JSDependencyManifest.ManifestFileName
-        val vfile = WritableFileVirtualTextFile(file)
+        val vfile = new WritableFileVirtualBinaryFile(file)
 
         // Prevent writing if unnecessary to not invalidate dependencies
-        val needWrite = !vfile.exists || {
+        val needWrite = !file.exists || {
           Try {
             val readManifest = JSDependencyManifest.read(vfile)
             readManifest != manifest
@@ -261,7 +340,7 @@ object JSDependenciesPlugin extends AutoPlugin {
             new ExactFilter(JSDependencyManifest.ManifestFileName),
             collectJar = jsDependencyManifestsInJar(_),
             collectFile = { (file, _) =>
-              JSDependencyManifest.read(FileVirtualTextFile(file))
+              JSDependencyManifest.read(new FileVirtualBinaryFile(file))
             })
 
         rawManifests.map(manifests => filter(manifests.toTraversable))
@@ -270,7 +349,7 @@ object JSDependenciesPlugin extends AutoPlugin {
       scalaJSNativeLibraries := {
         collectFromClasspath(fullClasspath.value,
             "*.js", collectJar = jsFilesInJar,
-            collectFile = FileVirtualJSFile.relative)
+            collectFile = (f, relPath) => relPath -> new FileVirtualBinaryFile(f))
       },
 
       resolvedJSDependencies := {
@@ -286,9 +365,9 @@ object JSDependenciesPlugin extends AutoPlugin {
 
         // Collect available JS libraries
         val availableLibs = {
-          val libs = mutable.Map.empty[String, VirtualJSFile]
+          val libs = mutable.Map.empty[String, VirtualBinaryFile]
           for (lib <- attLibs.data)
-            libs.getOrElseUpdate(lib.relativePath, lib)
+            libs.getOrElseUpdate(lib._1, lib._2)
           libs.toMap
         }
 
@@ -311,16 +390,13 @@ object JSDependenciesPlugin extends AutoPlugin {
          */
         val libs = jsEnv.value match {
           case _: org.scalajs.jsenv.nodejs.NodeJSEnv =>
-            val libCache = new VirtualFileMaterializer(false)
-
             for (dep <- deps) yield {
               dep.info.commonJSName.fold {
                 dep.lib
               } { commonJSName =>
-                val fname = libCache.materialize(dep.lib).getAbsolutePath
-                new MemVirtualJSFile(s"require-$fname").withContent(
-                  s"""$commonJSName = require("${escapeJS(fname)}");"""
-                )
+                val fname = materialize(dep.lib).toASCIIString
+                MemVirtualBinaryFile.fromStringUTF8(s"require-$fname",
+                    s"""$commonJSName = require("${escapeJS(fname)}");""")
               }
             }
 
