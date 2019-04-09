@@ -380,31 +380,51 @@ object JSDependenciesPlugin extends AutoPlugin {
       },
 
       // Add the resolved JS dependencies to the list of JS files given to envs
-      jsExecutionFiles := {
+      jsEnvInput := {
+        import org.scalajs.jsenv.Input
+
+        val env = jsEnv.value
+        val prevInput = jsEnvInput.value
         val deps = resolvedJSDependencies.value.data
 
-        /* Implement the behavior of commonJSName without having to burn it
-         * inside NodeJSEnv, and hence in the JSEnv API.
-         * Since this matches against NodeJSEnv specifically, it obviously
-         * breaks the OO approach, but oh well ...
-         */
-        val libs = jsEnv.value match {
-          case _: org.scalajs.jsenv.nodejs.NodeJSEnv =>
-            for (dep <- deps) yield {
-              dep.info.commonJSName.fold {
-                dep.lib
-              } { commonJSName =>
-                val fname = materialize(dep.lib).toASCIIString
-                MemVirtualBinaryFile.fromStringUTF8(s"require-$fname",
-                    s"""$commonJSName = require("${escapeJS(fname)}");""")
+        if (deps.isEmpty) {
+          /* If no dependencies need to be added, do not throw an error on
+           * unknown Inputs
+           */
+          prevInput
+        } else {
+          val prevScripts = prevInput match {
+            case Input.ScriptsToLoad(scripts) =>
+              scripts
+            case input =>
+              throw new MessageOnlyException(
+                  s"Invalid input $input when using jsDependencies. " +
+                  "Only Input.ScriptsToLoad(...) is supported.")
+          }
+
+          /* Implement the behavior of commonJSName without having to burn it
+           * inside NodeJSEnv, and hence in the JSEnv API.
+           * Since this matches against NodeJSEnv specifically, it obviously
+           * breaks the OO approach, but oh well ...
+           */
+          val libs = env match {
+            case _: org.scalajs.jsenv.nodejs.NodeJSEnv =>
+              for (dep <- deps) yield {
+                dep.info.commonJSName.fold {
+                  dep.lib
+                } { commonJSName =>
+                  val fname = materialize(dep.lib).toASCIIString
+                  MemVirtualBinaryFile.fromStringUTF8(s"require-$fname",
+                      s"""$commonJSName = require("${escapeJS(fname)}");""")
+                }
               }
-            }
 
-          case _ =>
-            deps.map(_.lib)
+            case _ =>
+              deps.map(_.lib)
+          }
+
+          Input.ScriptsToLoad(libs.toList ::: prevScripts)
         }
-
-        libs ++ jsExecutionFiles.value
       }
   )
 

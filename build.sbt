@@ -1,4 +1,4 @@
-val scalaJSVersion = "1.0.0-M6"
+val scalaJSVersion = "1.0.0-M7"
 
 def addSbtPluginWorkaround(moduleID: ModuleID): Setting[_] = {
   /* Work around https://github.com/sbt/sbt/issues/3393.
