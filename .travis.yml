@@ -5,7 +5,7 @@ scala:
   - 2.11.12
   - 2.12.6
 jdk:
-  - oraclejdk8
+  - openjdk8
 install:
   - if [[ "${TRAVIS_SCALA_VERSION}" == "2.10.7" ]]; then TEST_SBT_VERSION=0.13.17; elif [[ "${TRAVIS_SCALA_VERSION}" == "2.12.6" ]]; then TEST_SBT_VERSION=1.0.4; else TEST_SBT_VERSION=false; fi
   # The default ivy resolution takes way too much time, and times out Travis builds.
