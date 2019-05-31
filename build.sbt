@@ -1,17 +1,5 @@
 val scalaJSVersion = "1.0.0-M7"
 
-def addSbtPluginWorkaround(moduleID: ModuleID): Setting[_] = {
-  /* Work around https://github.com/sbt/sbt/issues/3393.
-   * This is the fixed definition of addSbtPlugin to be
-   * released with sbt 0.13.17.
-   */
-  libraryDependencies += {
-    val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
-    val scalaV = (scalaBinaryVersion in update).value
-    Defaults.sbtPluginExtra(moduleID, sbtV, scalaV)
-  }
-}
-
 inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
   organization := "org.scala-js",
@@ -102,7 +90,7 @@ lazy val `sbt-jsdependencies`: Project = project.in(file("jsdependencies-sbt-plu
     scalaBinaryVersion :=
       CrossVersion.binaryScalaVersion(scalaVersion.value),
 
-    addSbtPluginWorkaround("org.scala-js" % "sbt-scalajs" % scalaJSVersion),
+    addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion),
 
     // Add API mappings for sbt (seems they don't export their API URL)
     apiMappings ++= {
