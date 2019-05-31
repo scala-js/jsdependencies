@@ -6,13 +6,13 @@ import scala.collection.mutable
 import scala.util.Try
 
 import java.io.{FileFilter => _, _}
-import java.nio.file.{Files, StandardCopyOption}
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 import sbt._
 import sbt.Keys._
 
-import org.scalajs.io._
-import org.scalajs.io.JSUtils.escapeJS
+import org.scalajs.jsenv.JSUtils.escapeJS
 
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
@@ -21,13 +21,15 @@ import org.scalajs.jsdependencies.core._
 import org.scalajs.jsdependencies.core.DependencyResolver.DependencyFilter
 import org.scalajs.jsdependencies.core.ManifestFilters.ManifestFilter
 
+import com.google.common.jimfs.Jimfs
+
 object JSDependenciesPlugin extends AutoPlugin {
   override def requires: Plugins = ScalaJSPlugin
 
   object autoImport {
     import KeyRanks._
 
-    val scalaJSNativeLibraries = TaskKey[Attributed[Seq[(String, VirtualBinaryFile)]]](
+    val scalaJSNativeLibraries = TaskKey[Attributed[Seq[(String, Path)]]](
         "scalaJSNativeLibraries", "All the *.js files on the classpath", CTask)
 
     val packageJSDependencies = TaskKey[File]("packageJSDependencies",
@@ -79,6 +81,8 @@ object JSDependenciesPlugin extends AutoPlugin {
 
   }
 
+  private lazy val memFS = Jimfs.newFileSystem()
+
   import autoImport._
 
   /** Collect certain file types from a classpath.
@@ -104,7 +108,7 @@ object JSDependenciesPlugin extends AutoPlugin {
         results ++= collectJar(cpEntry)
       } else if (cpEntry.isDirectory) {
         for {
-          (file, relPath0) <- Path.selectSubpaths(cpEntry, filter)
+          (file, relPath0) <- sbt.Path.selectSubpaths(cpEntry, filter)
         } {
           val relPath = relPath0.replace(java.io.File.separatorChar, '/')
           realFiles += file
@@ -122,12 +126,11 @@ object JSDependenciesPlugin extends AutoPlugin {
 
   // Almost entirely copied from FileVirtualIRFiles.scala upstream
   private def jarListEntries[T](jar: File,
-      p: String => Boolean): List[(String, VirtualBinaryFile)] = {
+      p: String => Boolean): List[(String, Path)] = {
 
     import java.util.zip._
 
     val jarPath = jar.getPath
-    val jarVersion = new FileVirtualBinaryFile(jar).version
 
     val stream =
       new ZipInputStream(new BufferedInputStream(new FileInputStream(jar)))
@@ -143,7 +146,7 @@ object JSDependenciesPlugin extends AutoPlugin {
         }
       }
 
-      def makeVF(e: ZipEntry): (String, VirtualBinaryFile) = {
+      def makeVF(e: ZipEntry): (String, Path) = {
         val size = e.getSize
         val out =
           if (0 <= size && size <= Int.MaxValue) new ByteArrayOutputStream(size.toInt)
@@ -152,8 +155,9 @@ object JSDependenciesPlugin extends AutoPlugin {
         try {
           readAll(out)
           val relName = e.getName
-          val vf = MemVirtualBinaryFile(s"$jarPath:$relName", out.toByteArray(),
-              jarVersion)
+          val path = memFS.getPath(s"$jarPath/$relName")
+          Files.createDirectories(path.getParent())
+          val vf = Files.write(path, out.toByteArray())
           relName -> vf
         } finally {
           out.close()
@@ -170,7 +174,7 @@ object JSDependenciesPlugin extends AutoPlugin {
     }
   }
 
-  private def jsFilesInJar(jar: File): List[(String, VirtualBinaryFile)] =
+  private def jsFilesInJar(jar: File): List[(String, Path)] =
     jarListEntries(jar, _.endsWith(".js"))
 
   private def jsDependencyManifestsInJar(jar: File): List[JSDependencyManifest] = {
@@ -178,16 +182,14 @@ object JSDependenciesPlugin extends AutoPlugin {
       yield JSDependencyManifest.read(vf._2)
   }
 
-  /** Concatenates a bunch of VirtualBinaryFile to a WritableVirtualBinaryFile.
+  /** Concatenates a bunch of Path's.
    *  Adds a '\n' after each file.
    */
-  private def concatFiles(output: WritableVirtualBinaryFile,
-      files: Seq[VirtualBinaryFile]): Unit = {
-
-    val out = output.outputStream
+  private def concatFiles(output: Path, files: Seq[Path]): Unit = {
+    val out = new BufferedOutputStream(Files.newOutputStream(output))
     try {
       for (file <- files) {
-        val in = file.inputStream
+        val in = new BufferedInputStream(Files.newInputStream(file))
         try {
           val buffer = new Array[Byte](4096)
           @tailrec
@@ -232,16 +234,18 @@ object JSDependenciesPlugin extends AutoPlugin {
     }
   }
 
-  private def materialize(file: VirtualBinaryFile): URI = {
-    file match {
-      case file: FileVirtualFile => file.file.toURI
-      case file                  => tmpFile(file.path, file.inputStream)
+  private def materialize(file: Path): URI = {
+    try {
+      file.toFile().toURI()
+    } catch {
+      case _: UnsupportedOperationException =>
+        tmpFile(file.toString(), new BufferedInputStream(Files.newInputStream(file)))
     }
   }
 
   private def packageJSDependenciesSetting(taskKey: TaskKey[File],
       cacheName: String,
-      getLib: ResolvedJSDependency => VirtualBinaryFile): Setting[Task[File]] = {
+      getLib: ResolvedJSDependency => Path): Setting[Task[File]] = {
     taskKey := Def.taskDyn {
       if ((skip in taskKey).value)
         Def.task((artifactPath in taskKey).value)
@@ -258,10 +262,7 @@ object JSDependenciesPlugin extends AutoPlugin {
             FilesInfo.exists) { _ => // We don't need the files
 
           IO.createDirectory(output.getParentFile)
-
-          val outFile = new AtomicWritableFileVirtualBinaryFile(output)
-          concatFiles(outFile, resolvedDeps.map(getLib))
-
+          concatFiles(output.toPath(), resolvedDeps.map(getLib))
           Set(output)
         } (realFiles.toSet)
 
@@ -316,18 +317,18 @@ object JSDependenciesPlugin extends AutoPlugin {
         IO.createDirectory(targetDir)
 
         val file = targetDir / JSDependencyManifest.ManifestFileName
-        val vfile = new WritableFileVirtualBinaryFile(file)
+        val path = file.toPath()
 
         // Prevent writing if unnecessary to not invalidate dependencies
         val needWrite = !file.exists || {
           Try {
-            val readManifest = JSDependencyManifest.read(vfile)
+            val readManifest = JSDependencyManifest.read(path)
             readManifest != manifest
           } getOrElse true
         }
 
         if (needWrite)
-          JSDependencyManifest.write(manifest, vfile)
+          JSDependencyManifest.write(manifest, path)
 
         file
       },
@@ -340,7 +341,7 @@ object JSDependenciesPlugin extends AutoPlugin {
             new ExactFilter(JSDependencyManifest.ManifestFileName),
             collectJar = jsDependencyManifestsInJar(_),
             collectFile = { (file, _) =>
-              JSDependencyManifest.read(new FileVirtualBinaryFile(file))
+              JSDependencyManifest.read(file.toPath())
             })
 
         rawManifests.map(manifests => filter(manifests.toTraversable))
@@ -349,7 +350,7 @@ object JSDependenciesPlugin extends AutoPlugin {
       scalaJSNativeLibraries := {
         collectFromClasspath(fullClasspath.value,
             "*.js", collectJar = jsFilesInJar,
-            collectFile = (f, relPath) => relPath -> new FileVirtualBinaryFile(f))
+            collectFile = (f, relPath) => relPath -> f.toPath())
       },
 
       resolvedJSDependencies := {
@@ -365,7 +366,7 @@ object JSDependenciesPlugin extends AutoPlugin {
 
         // Collect available JS libraries
         val availableLibs = {
-          val libs = mutable.Map.empty[String, VirtualBinaryFile]
+          val libs = mutable.Map.empty[String, Path]
           for (lib <- attLibs.data)
             libs.getOrElseUpdate(lib._1, lib._2)
           libs.toMap
@@ -414,8 +415,8 @@ object JSDependenciesPlugin extends AutoPlugin {
                   dep.lib
                 } { commonJSName =>
                   val fname = materialize(dep.lib).toASCIIString
-                  MemVirtualBinaryFile.fromStringUTF8(s"require-$fname",
-                      s"""$commonJSName = require("${escapeJS(fname)}");""")
+                  Files.write(memFS.getPath(s"require-$fname"),
+                      s"""$commonJSName = require("${escapeJS(fname)}");""".getBytes(StandardCharsets.UTF_8))
                 }
               }
 

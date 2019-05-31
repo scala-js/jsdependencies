@@ -2,7 +2,7 @@ package org.scalajs.jsdependencies.core
 
 import scala.collection.mutable
 
-import org.scalajs.io.VirtualBinaryFile
+import java.nio.file.Path
 
 import JSLibResolveException.Problem
 
@@ -18,7 +18,7 @@ object DependencyResolver {
    */
   def resolveDependencies(
       manifests: Traversable[JSDependencyManifest],
-      availableLibs: Map[String, VirtualBinaryFile],
+      availableLibs: Map[String, Path],
       dependencyFilter: DependencyFilter): List[ResolvedJSDependency] = {
 
     val resourceNames = collectAllResourceNames(manifests)
