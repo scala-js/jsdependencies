@@ -74,7 +74,6 @@ lazy val `jsdependencies-core`: Project = project.in(file("jsdependencies-core")
     commonSettings,
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-ir" % scalaJSVersion,
       "com.googlecode.json-simple" % "json-simple" % "1.1.1" exclude("junit", "junit"),
 
       "com.novocode" % "junit-interface" % "0.11" % "test"
