@@ -16,7 +16,7 @@ inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
   organization := "org.scala-js",
 
-  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.6"),
+  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.8"),
   crossSbtVersions := Seq("1.0.4", "0.13.17"),
   scalaVersion := "2.10.7",
   scalacOptions ++= Seq("-deprecation", "-feature", "-Xfatal-warnings"),
