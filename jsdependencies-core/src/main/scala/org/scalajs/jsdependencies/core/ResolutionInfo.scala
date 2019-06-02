@@ -1,6 +1,6 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.ir.Trees.isValidIdentifier
+import JSUtils.isValidIdentifier
 
 /** Information about a resolved JSDependency
  *

@@ -1,24 +1,12 @@
-val scalaJSVersion = "1.0.0-M7"
-
-def addSbtPluginWorkaround(moduleID: ModuleID): Setting[_] = {
-  /* Work around https://github.com/sbt/sbt/issues/3393.
-   * This is the fixed definition of addSbtPlugin to be
-   * released with sbt 0.13.17.
-   */
-  libraryDependencies += {
-    val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
-    val scalaV = (scalaBinaryVersion in update).value
-    Defaults.sbtPluginExtra(moduleID, sbtV, scalaV)
-  }
-}
+val scalaJSVersion = "1.0.0-M8"
 
 inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
   organization := "org.scala-js",
 
-  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.6"),
-  crossSbtVersions := Seq("1.0.4", "0.13.17"),
-  scalaVersion := "2.10.7",
+  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.8"),
+  crossSbtVersions := Seq("1.2.8", "0.13.17"),
+  scalaVersion := "2.12.8",
   scalacOptions ++= Seq("-deprecation", "-feature", "-Xfatal-warnings"),
 
   homepage := Some(url("https://www.scala-js.org/")),
@@ -86,8 +74,6 @@ lazy val `jsdependencies-core`: Project = project.in(file("jsdependencies-core")
     commonSettings,
 
     libraryDependencies ++= Seq(
-      "org.scala-js" %% "scalajs-ir" % scalaJSVersion,
-      "org.scala-js" %% "scalajs-io" % scalaJSVersion,
       "com.googlecode.json-simple" % "json-simple" % "1.1.1" exclude("junit", "junit"),
 
       "com.novocode" % "junit-interface" % "0.11" % "test"
@@ -102,7 +88,7 @@ lazy val `sbt-jsdependencies`: Project = project.in(file("jsdependencies-sbt-plu
     scalaBinaryVersion :=
       CrossVersion.binaryScalaVersion(scalaVersion.value),
 
-    addSbtPluginWorkaround("org.scala-js" % "sbt-scalajs" % scalaJSVersion),
+    addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion),
 
     // Add API mappings for sbt (seems they don't export their API URL)
     apiMappings ++= {

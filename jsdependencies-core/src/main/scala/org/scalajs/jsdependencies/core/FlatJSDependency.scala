@@ -1,6 +1,6 @@
 package org.scalajs.jsdependencies.core
 
-import org.scalajs.ir.Trees.isValidIdentifier
+import JSUtils.isValidIdentifier
 
 /** The same as a [[JSDependency]] but containing the origin from the containing
  *  JSDependencyManifest, and resolved relative paths.

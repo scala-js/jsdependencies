@@ -4,8 +4,7 @@ import scala.collection.immutable.{Seq, Traversable}
 
 import java.io._
 import java.nio.charset.StandardCharsets
-
-import org.scalajs.io._
+import java.nio.file.{Path, Files}
 
 import org.scalajs.jsdependencies.core.json._
 
@@ -70,9 +69,8 @@ object JSDependencyManifest {
     }
   }
 
-  def write(dep: JSDependencyManifest, output: WritableVirtualBinaryFile): Unit = {
-    val writer =
-      new OutputStreamWriter(output.outputStream, StandardCharsets.UTF_8)
+  def write(dep: JSDependencyManifest, output: Path): Unit = {
+    val writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8)
     try {
       write(dep, writer)
     } finally {
@@ -83,8 +81,8 @@ object JSDependencyManifest {
   def write(dep: JSDependencyManifest, writer: Writer): Unit =
     writeJSON(dep.toJSON, writer)
 
-  def read(file: VirtualBinaryFile): JSDependencyManifest = {
-    val reader = new InputStreamReader(file.inputStream, StandardCharsets.UTF_8)
+  def read(file: Path): JSDependencyManifest = {
+    val reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)
     try {
       read(reader)
     } finally {
