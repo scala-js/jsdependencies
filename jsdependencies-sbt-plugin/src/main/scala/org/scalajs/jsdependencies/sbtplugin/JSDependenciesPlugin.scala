@@ -394,15 +394,6 @@ object JSDependenciesPlugin extends AutoPlugin {
            */
           prevInput
         } else {
-          val prevScripts = prevInput match {
-            case Input.ScriptsToLoad(scripts) =>
-              scripts
-            case input =>
-              throw new MessageOnlyException(
-                  s"Invalid input $input when using jsDependencies. " +
-                  "Only Input.ScriptsToLoad(...) is supported.")
-          }
-
           /* Implement the behavior of commonJSName without having to burn it
            * inside NodeJSEnv, and hence in the JSEnv API.
            * Since this matches against NodeJSEnv specifically, it obviously
@@ -424,7 +415,7 @@ object JSDependenciesPlugin extends AutoPlugin {
               deps.map(_.lib)
           }
 
-          Input.ScriptsToLoad(libs.toList ::: prevScripts)
+          libs.map(Input.Script(_)) ++ prevInput
         }
       }
   )

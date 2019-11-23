@@ -2,7 +2,7 @@ sudo: false
 language: scala
 scala:
   - 2.11.12
-  - 2.12.8
+  - 2.12.10
 jdk:
   - openjdk8
 install:
@@ -13,7 +13,7 @@ install:
 script:
   - sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/test jsdependencies-core/doc
   - |
-      if [[ "${TRAVIS_SCALA_VERSION}" == "2.12.8" ]]; then
+      if [[ "${TRAVIS_SCALA_VERSION}" == "2.12.10" ]]; then
         sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/publishLocal sbt-jsdependencies/publishLocal && \
         cd sbt-plugin-test && \
         sbt testAll && \
