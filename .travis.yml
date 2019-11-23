@@ -1,26 +1,22 @@
 sudo: false
 language: scala
 scala:
-  - 2.10.7
   - 2.11.12
-  - 2.12.8
+  - 2.12.10
+  - 2.13.1
 jdk:
   - openjdk8
 install:
-  - if [[ "${TRAVIS_SCALA_VERSION}" == "2.10.7" ]]; then TEST_SBT_VERSION=0.13.17; elif [[ "${TRAVIS_SCALA_VERSION}" == "2.12.8" ]]; then TEST_SBT_VERSION=1.2.8; else TEST_SBT_VERSION=false; fi
   # The default ivy resolution takes way too much time, and times out Travis builds.
   # We use coursier instead.
-  - mkdir -p $HOME/.sbt/0.13/plugins/
-  - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0")' > $HOME/.sbt/0.13/plugins/coursier.sbt
   - mkdir -p $HOME/.sbt/1.0/plugins/
   - echo 'addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0")' > $HOME/.sbt/1.0/plugins/coursier.sbt
 script:
   - sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/test jsdependencies-core/doc
   - |
-      if [[ "${TEST_SBT_VERSION}" != "false" ]]; then
-        sbt ++$TRAVIS_SCALA_VERSION ^^$TEST_SBT_VERSION jsdependencies-core/publishLocal sbt-jsdependencies/publishLocal && \
+      if [[ "${TRAVIS_SCALA_VERSION}" == "2.12.10" ]]; then
+        sbt ++$TRAVIS_SCALA_VERSION jsdependencies-core/publishLocal sbt-jsdependencies/publishLocal && \
         cd sbt-plugin-test && \
-        echo "sbt.version=$TEST_SBT_VERSION" > ./project/build.properties && \
         sbt testAll && \
         cd ..
       fi
@@ -32,4 +28,4 @@ cache:
 before_cache:
   - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
   - find $HOME/.sbt -name "*.lock" -print -delete
-  - rm $HOME/.sbt/0.13/plugins/coursier.sbt
+  - rm $HOME/.sbt/1.0/plugins/coursier.sbt

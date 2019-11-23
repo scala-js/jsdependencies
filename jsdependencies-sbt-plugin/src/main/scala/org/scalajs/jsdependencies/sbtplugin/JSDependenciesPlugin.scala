@@ -42,7 +42,7 @@ object JSDependenciesPlugin extends AutoPlugin {
     val jsDependencyManifest = TaskKey[File]("jsDependencyManifest",
         "Writes the JS_DEPENDENCIES file.", DTask)
 
-    val jsDependencyManifests = TaskKey[Attributed[Traversable[JSDependencyManifest]]](
+    val jsDependencyManifests = TaskKey[Attributed[Iterable[JSDependencyManifest]]](
         "jsDependencyManifests", "All the JS_DEPENDENCIES on the classpath", DTask)
 
     val jsDependencies = SettingKey[Seq[AbstractJSDep]]("jsDependencies",
@@ -344,7 +344,7 @@ object JSDependenciesPlugin extends AutoPlugin {
               JSDependencyManifest.read(file.toPath())
             })
 
-        rawManifests.map(manifests => filter(manifests.toTraversable))
+        rawManifests.map(manifests => filter(manifests))
       },
 
       scalaJSNativeLibraries := {
@@ -394,15 +394,6 @@ object JSDependenciesPlugin extends AutoPlugin {
            */
           prevInput
         } else {
-          val prevScripts = prevInput match {
-            case Input.ScriptsToLoad(scripts) =>
-              scripts
-            case input =>
-              throw new MessageOnlyException(
-                  s"Invalid input $input when using jsDependencies. " +
-                  "Only Input.ScriptsToLoad(...) is supported.")
-          }
-
           /* Implement the behavior of commonJSName without having to burn it
            * inside NodeJSEnv, and hence in the JSEnv API.
            * Since this matches against NodeJSEnv specifically, it obviously
@@ -424,7 +415,7 @@ object JSDependenciesPlugin extends AutoPlugin {
               deps.map(_.lib)
           }
 
-          Input.ScriptsToLoad(libs.toList ::: prevScripts)
+          libs.map(Input.Script(_)) ++ prevInput
         }
       }
   )
