@@ -42,7 +42,7 @@ object JSDependenciesPlugin extends AutoPlugin {
     val jsDependencyManifest = TaskKey[File]("jsDependencyManifest",
         "Writes the JS_DEPENDENCIES file.", DTask)
 
-    val jsDependencyManifests = TaskKey[Attributed[Traversable[JSDependencyManifest]]](
+    val jsDependencyManifests = TaskKey[Attributed[Iterable[JSDependencyManifest]]](
         "jsDependencyManifests", "All the JS_DEPENDENCIES on the classpath", DTask)
 
     val jsDependencies = SettingKey[Seq[AbstractJSDep]]("jsDependencies",
@@ -344,7 +344,7 @@ object JSDependenciesPlugin extends AutoPlugin {
               JSDependencyManifest.read(file.toPath())
             })
 
-        rawManifests.map(manifests => filter(manifests.toTraversable))
+        rawManifests.map(manifests => filter(manifests))
       },
 
       scalaJSNativeLibraries := {
