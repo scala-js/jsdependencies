@@ -1,4 +1,4 @@
-val scalaJSVersion = "1.0.0-RC2"
+val scalaJSVersion = "1.0.0"
 
 inThisBuild(Seq(
   version := "1.0.0-SNAPSHOT",
