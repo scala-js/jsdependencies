@@ -81,8 +81,6 @@ object JSDependenciesPlugin extends AutoPlugin {
 
   }
 
-  private lazy val memFS = Jimfs.newFileSystem()
-
   import autoImport._
 
   /** Collect certain file types from a classpath.
@@ -131,6 +129,7 @@ object JSDependenciesPlugin extends AutoPlugin {
     import java.util.zip._
 
     val jarPath = jar.getPath
+    val memFS = Jimfs.newFileSystem()
 
     val stream =
       new ZipInputStream(new BufferedInputStream(new FileInputStream(jar)))
@@ -217,7 +216,7 @@ object JSDependenciesPlugin extends AutoPlugin {
 
   private val tmpSuffixRE = """[a-zA-Z0-9-_.]*$""".r
 
-  private def tmpFile(path: String, in: InputStream): URI = {
+  private def tmpFile(path: String, in: InputStream): File = {
     try {
       /* - createTempFile requires a prefix of at least 3 chars
        * - we use a safe part of the path as suffix so the extension stays (some
@@ -228,15 +227,15 @@ object JSDependenciesPlugin extends AutoPlugin {
       val f = File.createTempFile("tmp-", suffix)
       f.deleteOnExit()
       Files.copy(in, f.toPath(), StandardCopyOption.REPLACE_EXISTING)
-      f.toURI()
+      f
     } finally {
       in.close()
     }
   }
 
-  private def materialize(file: Path): URI = {
+  private def materialize(file: Path): File = {
     try {
-      file.toFile().toURI()
+      file.toFile()
     } catch {
       case _: UnsupportedOperationException =>
         tmpFile(file.toString(), new BufferedInputStream(Files.newInputStream(file)))
@@ -401,12 +400,25 @@ object JSDependenciesPlugin extends AutoPlugin {
            */
           val libs = env match {
             case _: org.scalajs.jsenv.nodejs.NodeJSEnv =>
+              val memFS = Jimfs.newFileSystem()
+              val usedNames = mutable.Set.empty[String]
+
+              def getFileNameFor(commonJSName: String): String = {
+                var name = commonJSName
+                var suffix = 0
+                while (!usedNames.add(name)) {
+                  suffix += 1
+                  name = s"${commonJSName}_$suffix"
+                }
+                s"require-$name.js"
+              }
+
               for (dep <- deps) yield {
                 dep.info.commonJSName.fold {
                   dep.lib
                 } { commonJSName =>
-                  val fname = materialize(dep.lib).toASCIIString
-                  Files.write(memFS.getPath(s"require-$fname"),
+                  val fname = materialize(dep.lib).getAbsolutePath
+                  Files.write(memFS.getPath(getFileNameFor(commonJSName)),
                       s"""$commonJSName = require("${escapeJS(fname)}");""".getBytes(StandardCharsets.UTF_8))
                 }
               }
