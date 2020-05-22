@@ -21,7 +21,7 @@ This repository contains `sbt-jsdependencies` for Scala.js 1.x. In Scala.js
 Add the following line to `project/plugins.sbt`:
 
 ```scala
-addSbtPlugin("org.scala-js" % "sbt-jsdependencies" % "1.0.0")
+addSbtPlugin("org.scala-js" % "sbt-jsdependencies" % "1.0.1")
 ```
 
 and enable the following plugin on Scala.js projects where you need `jsDependencies`:
