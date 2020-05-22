@@ -11,7 +11,8 @@ addCommandAlias("testAll",
     ";jsDependenciesTest/packageJSDependencies" +
     ";jsDependenciesTest/packageMinifiedJSDependencies" +
     ";jsDependenciesTest/regressionTestForIssue2243" +
-    ";jsNoDependenciesTest/regressionTestForIssue2243")
+    ";jsNoDependenciesTest/regressionTestForIssue2243" +
+    ";jsDependenciesRunTest/run")
 
 val regressionTestForIssue2243 = TaskKey[Unit]("regressionTestForIssue2243",
   "", KeyRanks.BTask)
@@ -114,3 +115,14 @@ lazy val jsNoDependenciesTest = withRegretionTestForIssue2243(
   project.
   enablePlugins(ScalaJSPlugin, JSDependenciesPlugin)
 )
+
+lazy val jsDependenciesRunTest =
+  project.
+  enablePlugins(ScalaJSPlugin, JSDependenciesPlugin).
+  settings(
+    scalaJSUseMainModuleInitializer := true,
+    jsDependencies ++= Seq(
+        // #40 Make sure we can run in the presence of a commonJSName
+        "org.webjars" % "mustachejs" % "0.8.2" / "mustache.js" commonJSName "Mustache",
+    ),
+  )
