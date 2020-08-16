@@ -154,7 +154,7 @@ object JSDependenciesPlugin extends AutoPlugin {
         try {
           readAll(out)
           val relName = e.getName
-          val path = memFS.getPath(s"$jarPath/$relName")
+          val path = memFS.getPath(s"jarcontent/$relName")
           Files.createDirectories(path.getParent())
           val vf = Files.write(path, out.toByteArray())
           relName -> vf
