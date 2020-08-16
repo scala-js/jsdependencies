@@ -1,7 +1,7 @@
 val scalaJSVersion = "1.0.0"
 
 inThisBuild(Seq(
-  version := "1.0.2",
+  version := "1.0.3-SNAPSHOT",
   organization := "org.scala-js",
 
   crossScalaVersions := Seq("2.11.12", "2.12.10", "2.13.1"),
