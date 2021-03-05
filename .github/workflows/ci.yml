@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scalaversion: ["2.11.12", "2.12.10", "2.13.1"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v10
+        with:
+          java-version: "adopt@1.8"
+      - uses: coursier/cache-action@v5
+      - name: Core unit tests
+        run: sbt "++${{ matrix.scalaversion }}" jsdependencies-core/test
+      - name: Core doc generation
+        run: sbt "++${{ matrix.scalaversion }}" jsdependencies-core/doc
+      - name: sbt plugin tests
+        if: matrix.scalaversion == '2.12.10'
+        run: |
+          sbt "++${{ matrix.scalaversion }}" jsdependencies-core/publishLocal sbt-jsdependencies/publishLocal && \
+          cd sbt-plugin-test && \
+          sbt testAll && \
+          cd ..
